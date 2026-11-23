@@ -1,0 +1,15 @@
+# Virtual environment & Python cache (prevents host OS pollution inside Linux container)
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.git/
+.gitignore
+.env
+.env.*
+README.md
+

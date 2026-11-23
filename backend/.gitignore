@@ -1,0 +1,14 @@
+# Environments & Secrets
+.env
+.env.local
+.env.*.local
+
+# Virtual Environment & Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
