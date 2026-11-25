@@ -15,6 +15,7 @@ import {
   Check
 } from 'lucide-react';
 import { api } from '../services/api';
+import AIAgentBookingPanel from './AIAgentBookingPanel';
 
 const QUICK_REASONS = [
   'Routine Health Checkup',
@@ -33,6 +34,61 @@ export default function AppointmentForm({ onAppointmentBooked, preselectedDoctor
   const [submitting, setSubmitting] = useState(false);
   const [successData, setSuccessData] = useState(null);
   const [formError, setFormError] = useState('');
+  const [aiNotice, setAiNotice] = useState('');
+
+  // Human-in-the-Loop Handlers
+  const handleAIApproveAndFill = (parsedData) => {
+    setFormData((prev) => ({
+      ...prev,
+      patient_name: parsedData.patient_name || prev.patient_name,
+      patient_age: parsedData.patient_age ? String(parsedData.patient_age) : prev.patient_age,
+      reason: parsedData.reason || prev.reason,
+      doctor_name: parsedData.doctor_name || prev.doctor_name,
+      department: parsedData.department || prev.department,
+      appointment_date: parsedData.appointment_date || prev.appointment_date,
+      time_slot: parsedData.time_slot || prev.time_slot,
+      contact_phone: parsedData.contact_phone || prev.contact_phone,
+      contact_email: parsedData.contact_email || prev.contact_email,
+      notes: parsedData.clinical_notes || prev.notes,
+    }));
+    setErrors({});
+    setAiNotice(`✨ Form auto-filled by AI Agent for ${parsedData.patient_name} (${parsedData.department}). Review the details below and confirm booking.`);
+    const formElement = document.getElementById('booking-form');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleAIApproveAndInstantBook = async (parsedData) => {
+    setSubmitting(true);
+    setFormError('');
+    try {
+      const appointmentDateTime = new Date(`${parsedData.appointment_date}T09:00:00Z`).toISOString();
+      const payload = {
+        patient_name: parsedData.patient_name.trim(),
+        patient_age: parseInt(parsedData.patient_age, 10),
+        reason: parsedData.reason.trim(),
+        doctor_name: parsedData.doctor_name,
+        department: parsedData.department,
+        appointment_date: appointmentDateTime,
+        time_slot: parsedData.time_slot,
+        contact_phone: parsedData.contact_phone?.trim() || null,
+        contact_email: parsedData.contact_email?.trim() || null,
+        notes: parsedData.clinical_notes?.trim() || null,
+      };
+
+      const result = await api.createAppointment(payload);
+      setSuccessData(result);
+      if (onAppointmentBooked) {
+        onAppointmentBooked(result);
+      }
+    } catch (err) {
+      console.error('Instant booking failed:', err);
+      setFormError(`Instant booking failed: ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Form State - strictly includes Name, Age, Reason
   const [formData, setFormData] = useState({
@@ -320,8 +376,31 @@ export default function AppointmentForm({ onAppointmentBooked, preselectedDoctor
         </h1>
         <p className="text-slate-600 mt-2 text-sm sm:text-base">
           Fill out the consultation form below with the patient's name, age, and reason for visit to confirm your slot.
+          Fill out the consultation form below with the patient's name, age, and reason for visit to confirm your slot, or use our ReAct AI Agent above.
         </p>
       </div>
+
+      {/* Groq LangChain ReAct Agent with MCP Tools & Human-in-the-Loop */}
+      <AIAgentBookingPanel
+        onApproveAndFill={handleAIApproveAndFill}
+        onApproveAndInstantBook={handleAIApproveAndInstantBook}
+      />
+
+      {aiNotice && (
+        <div className="mb-6 p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-between text-sm shadow-sm animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <CheckCircle2 className="w-5 h-5 text-teal-600 flex-shrink-0" />
+            <p className="font-medium">{aiNotice}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAiNotice('')}
+            className="text-xs text-teal-600 hover:text-teal-900 font-bold ml-4 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {formError && (
         <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-start space-x-3 text-sm">
@@ -334,7 +413,7 @@ export default function AppointmentForm({ onAppointmentBooked, preselectedDoctor
       )}
 
       {/* Main Form Container */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+      <form id="booking-form" onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
         {/* Section 1: Patient Information */}
         <div className="p-6 sm:p-8 border-b border-slate-100">
           <div className="flex items-center space-x-3 mb-6">

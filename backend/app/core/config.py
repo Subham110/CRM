@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     # Security Keys (Loaded strictly from .env / environment - NEVER hardcoded or exposed)
     SECRET_KEY: Optional[SecretStr] = None
 
+    # Groq AI & LangChain Settings (Loaded securely from .env - NEVER exposed)
+    GROQ_API_KEY: Optional[SecretStr] = None
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
     # Database Settings (Credentials loaded securely from .env - no exposed keys in code)
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432

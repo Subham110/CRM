@@ -54,6 +54,18 @@ export const api = {
     return apiRequest('/doctors/');
   },
 
+  // AI ReAct Agent & MCP endpoints
+  parseWithAgent: async (prompt) => {
+    return apiRequest('/agent/parse', {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+    });
+  },
+
+  getMCPTools: async () => {
+    return apiRequest('/agent/tools');
+  },
+
   // Appointments endpoints
   getAppointments: async (params = {}) => {
     const query = new URLSearchParams();
